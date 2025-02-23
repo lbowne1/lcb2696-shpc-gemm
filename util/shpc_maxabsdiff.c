@@ -19,6 +19,6 @@ double shpc_maxabsdiff( int m, int n, double *A, int rsA, int csA,
             if ( temp  > diff )
                 diff = temp;
         }
-        return diff;
     }
+    return diff;
 }

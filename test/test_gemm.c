@@ -91,7 +91,7 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 		        ( unsigned long )(size - first)/inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )k,
-		        ( unsigned long )n, gflops_ref, gflops, maxdiff );
+		        ( unsigned long )n, gflops_ref, gflops, diff );
 
 
 
