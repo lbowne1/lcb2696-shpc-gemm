@@ -7,6 +7,13 @@
 #define dabs( x ) ( (x) < 0 ? -(x) : x )
 #define max(x, y) (((x) > (y)) ? (x) : (y))
 
+#define int MR = 4;
+#define int NR = 4;
+
+#define int KC = 240;
+#define int MC = 240;
+#define int NC = 240;
+
 
 #include "blis.h"
 
