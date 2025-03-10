@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <limits.h>
+#include <assert.h>
 
 
 #define dabs( x ) ( (x) < 0 ? -(x) : x )
