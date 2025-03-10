@@ -1,4 +1,4 @@
-#include "assignment1.h"
+#include "assignment3.h"
 
 int test_gemm( int nrepeats, int first, int last, int inc)
 {
