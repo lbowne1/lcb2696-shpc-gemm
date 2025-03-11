@@ -62,7 +62,7 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 			t_ref = bli_clock_min_diff( t_ref, t_start );
 			
 		}
-
+		//print_matrix((const char *) "BLIS/0", Cref, m, n, rsC, csC);
 		gflops_ref = 2 * m * n * k / ( t_ref * 1.0e9 );
 
 		 
@@ -78,8 +78,8 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 					    C, rsC, csC );	
 			
 			t = bli_clock_min_diff( t , t_start );
-			
 		}
+		//print_matrix((const char *) "DGEMM/0", C, m, n, rsC, csC);
 
 		gflops = 2 * m * n * k / ( t * 1.0e9 );
 		
@@ -104,5 +104,16 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 	}
 
 
+}
+
+void print_matrix(const char *name, double *M, int rows, int cols, int rs, int cs) {
+    printf("%s:\n", name);
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%8.2f ", M[i * rs + j * cs]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 

@@ -17,9 +17,9 @@ int get_args( int argc, char **argv, int *nrepeats, int *first,
     // *inc   = 50;                        
     *nrepeats = 1;                                                               
                                                                                 
-    *first = 48;                                                                
-    *last  = 48*3;                                                                
-    *inc   = 48;               
+    *first = 64;                                                                
+    *last  = 64*4;                                                                
+    *inc   = 64;               
     
 
     if ( argc == 1 )                                                            
