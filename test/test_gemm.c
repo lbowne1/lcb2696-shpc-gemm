@@ -97,7 +97,7 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 
 		free( A );
 		free( B );
-		free( C );
+		//free( C );
 		free( Cold );
 		free( Cref );
 

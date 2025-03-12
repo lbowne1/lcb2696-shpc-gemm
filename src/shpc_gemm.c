@@ -6,7 +6,7 @@ int MR = 8;
 int NR = 6;
 
 int KC = 256;
-int MC = 960;
+int MC = 968;
 int NC = 11264;
 
 void shpc_dgemm(int m, int n, int k,
@@ -52,8 +52,8 @@ void shpc_dgemm(int m, int n, int k,
                 }
             }
         }
-        // free(Bc);
-        // free(Ac);
+        free(Bc);
+        free(Ac);
     }
 }
 
@@ -85,11 +85,13 @@ void microkernel(double *A, int rsA, int csA,
         __m256d gamma_4567_5 = _mm256_loadu_pd(&C[4 * rsC + 5 * csC]);
 
         __m256d beta_p;
+        __m256d alpha_0123_p;
+        __m256d alpha_4567_p;
 
         for (int p = 0; p < k; p++)
         {
-            __m256d alpha_0123_p = _mm256_loadu_pd(&A[0 * rsA + p * csA]);
-            __m256d alpha_4567_p = _mm256_loadu_pd(&A[4 * rsA + p * csA]);
+            alpha_0123_p = _mm256_loadu_pd(&A[0 * rsA + p * csA]);
+            alpha_4567_p = _mm256_loadu_pd(&A[4 * rsA + p * csA]);
 
             beta_p = _mm256_broadcast_sd(&B[p * rsB + 0 * csB]); // rsB = KC
             gamma_0123_0 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_0);
@@ -186,7 +188,7 @@ void PackPanelA_MCxKC(int m, int k, double *A, int rsA, int csA, double *Ac)
             {
                 for (int i = 0; i < MR; i++)
                 {
-                    *(Ac++) = A[(ip + i) * rsA + p * csA]; // Copy A in row-major format into packed buffer
+                    *(Ac++) = A[(ip + i) * rsA + p * csA]; 
                 }
             }
         }
