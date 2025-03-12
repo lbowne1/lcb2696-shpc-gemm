@@ -63,7 +63,7 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 			
 		}
 		//print_matrix((const char *) "BLIS/0", Cref, m, n, rsC, csC);
-		gflops_ref = 2 * m * n * k / ( t_ref * 1.0e9 );
+		gflops_ref = 2.0 * m * n * k / ( t_ref * 1.0e9 );
 
 		 
 		for ( irep=0; irep<nrepeats; irep++ )
@@ -81,17 +81,17 @@ int test_gemm( int nrepeats, int first, int last, int inc)
 		}
 		//print_matrix((const char *) "DGEMM/0", C, m, n, rsC, csC);
 
-		gflops = 2 * m * n * k / ( t * 1.0e9 );
+		gflops = 2.0 * m * n * k / ( t * 1.0e9 );
 		
 		diff    = shpc_maxabsdiff( m, n, C, rsC, csC, Cref, rsC, csC );
         maxdiff = max ( diff, maxdiff );
 
 		printf( "data_dgemm");
-		printf( "( %4lu, 1:6 ) = [ %5lu %5lu %5lu %8.2f %8.2f %15.4e ];\n",
+		printf( "( %4lu, 1:6 ) = [ %5lu %5lu %5lu %8.2f %8.2f %8.2f %15.4e ];\n",
 		        ( unsigned long )(size - first)/inc + 1,
 		        ( unsigned long )m,
 		        ( unsigned long )k,
-		        ( unsigned long )n, gflops_ref, gflops, diff );
+		        ( unsigned long )n, gflops_ref, gflops, gflops/gflops_ref, diff );
 
 
 

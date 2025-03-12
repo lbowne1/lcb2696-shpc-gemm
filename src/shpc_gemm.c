@@ -5,9 +5,9 @@
 int MR = 8;
 int NR = 6;
 
-int KC = 2048;
-int MC = 1024;
-int NC = 6;
+int KC = 256;
+int MC = 960;
+int NC = 11264;
 
 void shpc_dgemm(int m, int n, int k,
                 double *A, int rsA, int csA,
