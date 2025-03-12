@@ -21,19 +21,19 @@ void shpc_dgemm(int m, int n, int k,
     // First loop partitions C and B into column panels.
     for (int jc = 0; jc < n; jc += NC)
     {
-        NC = bli_min(NC, n - jc);
+        NC = (NC < n - jc) ? NC : n - jc;
 
         // Second loop partitions A and B over KC
         for (int pc = 0; pc < k; pc += KC)
         {
-            KC = bli_min(KC, k - pc);
+            KC = (KC < k - pc) ? KC : k - pc;
 
             PackPanelB_KCxNC(KC, NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
 
             // Third loop partitions C and A over MC
             for (int ic = 0; ic < m; ic += MC)
             {
-                MC = bli_min(MC, m - ic);
+                MC = (MC < m - ic) ? MC : m - ic;
                 
                 PackPanelA_MCxKC(MC, KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
@@ -138,10 +138,8 @@ void PackPanelB_KCxNC(int k, int n, double *B, int csB, int rsB, double *Bc)
 {
     for (int jp = 0; jp < n; jp += NR)
     {
-        int jb = bli_min(NR, n - jp);
-
         // is a multiple
-        if (jb == NR)
+        if (NR <= n - jp)
         {
             for (int p = 0; p < k; p++)
             {
@@ -155,6 +153,7 @@ void PackPanelB_KCxNC(int k, int n, double *B, int csB, int rsB, double *Bc)
         }
         else
         {
+            int jb = n - jp;
             for (int p = 0; p < k; p++)
             {
                 for (int j = 0; j < jb; j++)
@@ -180,10 +179,8 @@ void PackPanelA_MCxKC(int m, int k, double *A, int rsA, int csA, double *Ac)
 {
     for (int ip = 0; ip < m; ip += MR)
     {
-        int ib = bli_min(MR, m - ip);
-
         // is a multiple
-        if (ib == MR)
+        if (MR <= m - ip)
         {
             for (int p = 0; p < k; p++)
             {
@@ -192,11 +189,10 @@ void PackPanelA_MCxKC(int m, int k, double *A, int rsA, int csA, double *Ac)
                     *(Ac++) = A[(ip + i) * rsA + p * csA]; // Copy A in row-major format into packed buffer
                 }
             }
-
-            // not a multiple
         }
         else
         {
+            int ib = m - ip;
             for (int p = 0; p < k; p++)
             {
                 for (int i = 0; i < ib; i++)
