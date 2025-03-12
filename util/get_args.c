@@ -15,11 +15,11 @@ int get_args( int argc, char **argv, int *nrepeats, int *first,
     // *first = 100;                                                                
     // *last  = 500;                                                                
     // *inc   = 50;                        
-    *nrepeats = 1;                                                               
+    *nrepeats = 10;                                                               
                                                                                 
-    *first = 64;                                                                
-    *last  = 64*4;                                                                
-    *inc   = 64;               
+    *first = 48;                                                                
+    *last  = 48*10;                                                                
+    *inc   = 48;               
     
 
     if ( argc == 1 )                                                            
