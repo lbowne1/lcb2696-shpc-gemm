@@ -9,7 +9,7 @@ int NR = 6;
 
 int KC = 256;
 int MC = 968;
-int NC = 11264;
+int NC = 11262;
 
 void shpc_dgemm(int m, int n, int k,
                 double *A, int rsA, int csA,
@@ -24,32 +24,35 @@ void shpc_dgemm(int m, int n, int k,
     
         for (int jc = 0; jc < n; jc += NC)
         {
-            NC = (NC > (n - jc)) ? (n - jc) : NC;
+            int real_NC = (NC > (n - jc)) ? (n - jc) : NC;
 
             // Second loop partitions A and B over KC
             for (int pc = 0; pc < k; pc += KC)
             {
-                KC = (KC > (k - pc)) ? (k - pc) : KC;
-                pack_panel_b(KC, NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
+                int real_KC = (KC > (k - pc)) ? (k - pc) : KC;
+                pack_panel_b(real_KC, real_NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
                 
 
                 // Third loop partitions C and A over MC
                 for (int ic = 0; ic < m; ic += MC)
                 {
-                    MC = (MC < m - ic) ? MC : m - ic;
-                    pack_panel_a(MC, KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
+                    int real_MC = (MC < m - ic) ? MC : m - ic;
+                    pack_panel_a(real_MC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
                     // Fourth loop partitions Bp into column “slivers” of width nr.
-                    for (int jr = 0; jr < NC; jr += NR)
+                    for (int jr = 0; jr < real_NC; jr += NR)
                     {
+                        int real_NR = (NR > real_NC - jr) ? (real_NC - jr) : NR; 
 
                         // Fifth loop partitions Ae into row slivers of height mr.
-                        for (int ir = 0; ir < MC; ir += MR)
+                        for (int ir = 0; ir < real_MC; ir += MR)
                         {
-                            microkernel(Ac + (ir * KC), 1, MR,
-                                        Bc + (jr * KC), NR, 1,
+                            int real_MR = (MR > real_MC - ir) ? (real_MC - ir) : MR;
+
+                            microkernel(Ac + (ir * real_KC), 1, real_MR,
+                                        Bc + (jr * real_KC), real_NR, 1,
                                         C + ((ic + ir) * rsC + (jc + jr) * csC), rsC, csC,
-                                        KC);
+                                        real_KC);
                         }
                     }
                 }
@@ -181,6 +184,7 @@ void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
 {
     for (int jp = 0; jp < n; jp += NR)
     {
+        //int curNR = (NR > (n - jp)) ? (n - jp) : NR;
         // is a multiple
         if (NR <= n - jp)
         {
