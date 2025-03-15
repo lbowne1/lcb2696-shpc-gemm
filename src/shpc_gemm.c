@@ -37,20 +37,22 @@ void shpc_dgemm(int m, int n, int k,
                 for (int ic = 0; ic < m; ic += MC)
                 {
                     int real_MC = (MC < m - ic) ? MC : m - ic;
+
+                    //int max_threads = omp_get_max_threads();
+                    //int NC_per_thread = ( ( real_NC / max_threads ) / NR ) * NR;
+
                     pack_panel_a(real_MC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
                     // Fourth loop partitions Bp into column “slivers” of width nr.
                     for (int jr = 0; jr < real_NC; jr += NR)
                     {
-                        int real_NR = (NR > real_NC - jr) ? (real_NC - jr) : NR; 
-
+                        
                         // Fifth loop partitions Ae into row slivers of height mr.
                         for (int ir = 0; ir < real_MC; ir += MR)
                         {
-                            int real_MR = (MR > real_MC - ir) ? (real_MC - ir) : MR;
 
-                            microkernel(Ac + (ir * real_KC), 1, real_MR,
-                                        Bc + (jr * real_KC), real_NR, 1,
+                            microkernel(Ac + (ir * real_KC), 1, MR,
+                                        Bc + (jr * real_KC), NR, 1,
                                         C + ((ic + ir) * rsC + (jc + jr) * csC), rsC, csC,
                                         real_KC);
                         }
@@ -180,38 +182,23 @@ void microkernel(double *A, int rsA, int csA,
 /* Pack a k x n panel of B in to a KC x NC buffer.
 The block is copied into Btilde a micro-panel at a time. */
 void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
-
 {
     for (int jp = 0; jp < n; jp += NR)
     {
-        //int curNR = (NR > (n - jp)) ? (n - jp) : NR;
-        // is a multiple
-        if (NR <= n - jp)
+        int real_NR = (NR > (n - jp)) ? (n - jp) : NR;
+
+        for (int p = 0; p < k; p++)
         {
-            for (int p = 0; p < k; p++)
+            for (int j = 0; j < real_NR; j++)
             {
-                for (int j = 0; j < NR; j++)
-                {
-                    *(Bc++) = B[(jp + j) * csB + p * rsB];
-                }
+                *(Bc++) = B[(jp + j) * csB + p * rsB];
             }
 
-        // not a multiple
-        }
-        else
-        {
-            int jb = n - jp;
-            for (int p = 0; p < k; p++)
+            // Not a multiple
+            if (real_NR != NR)
+            for (int j = real_NR; j < NR; j++)
             {
-                for (int j = 0; j < jb; j++)
-                {
-                    *(Bc++) = B[(jp + j) * csB + p * rsB];
-                }
-
-                for (int j = jb; j < NR; j++)
-                {
-                    *(Bc++) = 0.0;
-                }
+                *(Bc++) = 0.0;
             }
         }
     }
@@ -227,31 +214,18 @@ void pack_panel_a(int m, int k, double *A, int rsA, int csA, double *Ac)
 {
     for (int ip = 0; ip < m; ip += MR)
     {
-        // is a multiple
-        if (MR <= m - ip)
-        {
-            for (int p = 0; p < k; p++)
-            {
-                for (int i = 0; i < MR; i++)
-                {
-                    *(Ac++) = A[(ip + i) * rsA + p * csA]; 
-                }
-            }
-        }
-        else
-        {
-            int ib = m - ip;
-            for (int p = 0; p < k; p++)
-            {
-                for (int i = 0; i < ib; i++)
-                {
-                    *(Ac++) = A[(ip + i) * rsA + p * csA];
-                }
+        int real_MR = (MR > (m - ip)) ? (m - ip) : MR;
 
-                for (int i = ib; i < MR; i++)
-                {
-                    *(Ac++) = 0.0;
-                }
+        for (int p = 0; p < k; p++)
+        {
+            for (int i = 0; i < real_MR; i++)
+            {
+                *(Ac++) = A[(ip + i) * rsA + p * csA]; 
+            }
+
+            for (int i = real_MR; i < MR; i++)
+            {
+                *(Ac++) = 0.0;
             }
         }
     }

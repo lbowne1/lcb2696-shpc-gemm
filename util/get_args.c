@@ -10,16 +10,16 @@ int get_args( int argc, char **argv, int *nrepeats, int *first,
                                                     
 
     // Default values                            
-    // *nrepeats = 3;                                                               
-                                                                                
-    // *first = 100;                                                                
-    // *last  = 500;                                                                
-    // *inc   = 50;                        
     *nrepeats = 3;                                                               
                                                                                 
-    *first = 480;                                                                
-    *last  = 480*10;                                                                
-    *inc   = 480;               
+    *first = 100;                                                                
+    *last  = 500;                                                                
+    *inc   = 50;                        
+    // *nrepeats = 3;                                                               
+                                                                                
+    // *first = 480;                                                                
+    // *last  = 480*10;                                                                
+    // *inc   = 480;               
     
 
     if ( argc == 1 )                                                            
