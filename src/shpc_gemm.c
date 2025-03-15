@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <omp.h>
 
-
 int MR = 8;
 int NR = 6;
 
@@ -11,12 +10,15 @@ int KC = 256;
 int MC = 968;
 int NC = 11262;
 
+int ldA;
+int ldB;
+int ldC;
+
 void shpc_dgemm(int m, int n, int k,
                 double *A, int rsA, int csA,
                 double *B, int rsB, int csB,
                 double *C, int rsC, int csC)
 {
-
     double *Ac = (double *)_mm_malloc(MC * KC * sizeof(double), 64);
     double *Bc = (double *)_mm_malloc(NC * KC * sizeof(double), 64);
 
@@ -100,7 +102,7 @@ void microkernel(double *A, int rsA, int csA,
         __m256d alpha_0123_p;
         __m256d alpha_4567_p;
 
-        for (int p = 0; p < k; p+=2)
+        for (int p = 0; p < k; p+=4)
         {
             alpha_0123_p = _mm256_loadu_pd(&A[0 * rsA + p * csA]);
             alpha_4567_p = _mm256_loadu_pd(&A[4 * rsA + p * csA]);
@@ -157,6 +159,64 @@ void microkernel(double *A, int rsA, int csA,
             beta_p = _mm256_broadcast_sd(&B[(p +1) * rsB + 5 * csB]);
             gamma_0123_5 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_5);
             gamma_4567_5 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_5);
+
+
+             // Unroll (p + 2) 
+             alpha_0123_p = _mm256_loadu_pd(&A[0 * rsA + (p + 2) * csA]);
+             alpha_4567_p = _mm256_loadu_pd(&A[4 * rsA + (p + 2) * csA]);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 0 * csB]); // rsB = KC
+             gamma_0123_0 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_0);
+             gamma_4567_0 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_0);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 1 * csB]);
+             gamma_0123_1 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_1);
+             gamma_4567_1 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_1);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 2 * csB]);
+             gamma_0123_2 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_2);
+             gamma_4567_2 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_2);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 3 * csB]);
+             gamma_0123_3 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_3);
+             gamma_4567_3 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_3);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 4 * csB]);
+             gamma_0123_4 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_4);
+             gamma_4567_4 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_4);
+ 
+             beta_p = _mm256_broadcast_sd(&B[(p +2) * rsB + 5 * csB]);
+             gamma_0123_5 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_5);
+             gamma_4567_5 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_5);
+
+
+              // Unroll (p + 3) 
+            alpha_0123_p = _mm256_loadu_pd(&A[0 * rsA + (p + 3) * csA]);
+            alpha_4567_p = _mm256_loadu_pd(&A[4 * rsA + (p + 3) * csA]);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 0 * csB]); // rsB = KC
+            gamma_0123_0 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_0);
+            gamma_4567_0 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_0);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 1 * csB]);
+            gamma_0123_1 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_1);
+            gamma_4567_1 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_1);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 2 * csB]);
+            gamma_0123_2 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_2);
+            gamma_4567_2 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_2);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 3 * csB]);
+            gamma_0123_3 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_3);
+            gamma_4567_3 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_3);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 4 * csB]);
+            gamma_0123_4 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_4);
+            gamma_4567_4 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_4);
+
+            beta_p = _mm256_broadcast_sd(&B[(p +3) * rsB + 5 * csB]);
+            gamma_0123_5 = _mm256_fmadd_pd(alpha_0123_p, beta_p, gamma_0123_5);
+            gamma_4567_5 = _mm256_fmadd_pd(alpha_4567_p, beta_p, gamma_4567_5);
         }
 
         _mm256_storeu_pd(&C[0 * rsC + 0 * csC], gamma_0123_0);
@@ -194,8 +254,6 @@ void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
                 *(Bc++) = B[(jp + j) * csB + p * rsB];
             }
 
-            // Not a multiple
-            if (real_NR != NR)
             for (int j = real_NR; j < NR; j++)
             {
                 *(Bc++) = 0.0;
