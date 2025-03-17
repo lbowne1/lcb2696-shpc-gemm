@@ -32,7 +32,9 @@ void shpc_dgemm(int m, int n, int k,
             for (int pc = 0; pc < k; pc += KC)
             {
                 int real_KC = (KC > (k - pc)) ? (k - pc) : KC;
-                pack_panel_b(real_KC, real_NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
+                int aligned_KC = ((real_KC + 3) / 4) * 4;
+
+                pack_panel_b(real_KC, aligned_KC, real_NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
                 
 
                 // Third loop partitions C and A over MC
@@ -43,7 +45,7 @@ void shpc_dgemm(int m, int n, int k,
                     //int max_threads = omp_get_max_threads();
                     //int NC_per_thread = ( ( real_NC / max_threads ) / NR ) * NR;
 
-                    pack_panel_a(real_MC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
+                    pack_panel_a(real_MC, aligned_KC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
                     // Fourth loop partitions Bp into column “slivers” of width nr.
                     for (int jr = 0; jr < real_NC; jr += NR)
@@ -53,8 +55,8 @@ void shpc_dgemm(int m, int n, int k,
                         for (int ir = 0; ir < real_MC; ir += MR)
                         {
 
-                            microkernel(Ac + (ir * real_KC), 1, MR,
-                                        Bc + (jr * real_KC), NR, 1,
+                            microkernel(Ac + (ir * aligned_KC), 1, MR,
+                                        Bc + (jr * aligned_KC), NR, 1,
                                         C + ((ic + ir) * rsC + (jc + jr) * csC), rsC, csC,
                                         real_KC);
                         }
@@ -241,7 +243,7 @@ void microkernel(double *A, int rsA, int csA,
 
 /* Pack a k x n panel of B in to a KC x NC buffer.
 The block is copied into Btilde a micro-panel at a time. */
-void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
+void pack_panel_b(int k, int aligned_KC, int n, double *B, int csB, int rsB, double *Bc)
 {
     for (int jp = 0; jp < n; jp += NR)
     {
@@ -259,6 +261,17 @@ void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
                 *(Bc++) = 0.0;
             }
         }
+        if (k % 4 != 0)
+        {
+            for (int p = k; p < aligned_KC; p++)  
+            {
+                for (int j = 0; j < NR; j++)
+                {
+                    *(Bc++) = 0.0;
+                }
+            }
+        }
+        
     }
 }
         
@@ -268,7 +281,7 @@ void pack_panel_b(int k, int n, double *B, int csB, int rsB, double *Bc)
    - A is stored in row-major order.
    - The packed format is MC x KC, where MR-sized micro-panels are processed.
 */
-void pack_panel_a(int m, int k, double *A, int rsA, int csA, double *Ac)
+void pack_panel_a(int m, int aligned_KC, int k, double *A, int rsA, int csA, double *Ac)
 {
     for (int ip = 0; ip < m; ip += MR)
     {
@@ -284,6 +297,16 @@ void pack_panel_a(int m, int k, double *A, int rsA, int csA, double *Ac)
             for (int i = real_MR; i < MR; i++)
             {
                 *(Ac++) = 0.0;
+            }
+        }
+        if (k % 4 != 0)
+        {
+            for (int p = k; p < aligned_KC; p++)  
+            {
+                for (int i = 0; i < MR; i++)
+                {
+                    *(Ac++) = 0.0;
+                }
             }
         }
     }
