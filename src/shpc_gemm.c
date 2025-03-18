@@ -19,7 +19,6 @@ void shpc_dgemm(int m, int n, int k,
                 double *B, int rsB, int csB,
                 double *C, int rsC, int csC)
 {
-    double *Ac = (double *)_mm_malloc(MC * KC * sizeof(double), 64);
     double *Bc = (double *)_mm_malloc(NC * KC * sizeof(double), 64);
 
     // First loop partitions C and B into column panels.
@@ -38,13 +37,12 @@ void shpc_dgemm(int m, int n, int k,
                 
 
                 // Third loop partitions C and A over MC
+                #pragma omp parallel for
                 for (int ic = 0; ic < m; ic += MC)
                 {
                     int real_MC = (MC < m - ic) ? MC : m - ic;
 
-                    //int max_threads = omp_get_max_threads();
-                    //int NC_per_thread = ( ( real_NC / max_threads ) / NR ) * NR;
-
+                    double *Ac = (double *)_mm_malloc(MC * KC * sizeof(double), 64);
                     pack_panel_a(real_MC, aligned_KC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
                     // Fourth loop partitions Bp into column “slivers” of width nr.
@@ -61,11 +59,11 @@ void shpc_dgemm(int m, int n, int k,
                                         real_KC);
                         }
                     }
+                    _mm_free(Ac);
                 }
             }
         }
     _mm_free(Bc);
-    _mm_free(Ac);
 }
 
 /*
