@@ -10,10 +10,6 @@ int KC = 256;
 int MC = 968;
 int NC = 11262;
 
-int ldA;
-int ldB;
-int ldC;
-
 void shpc_dgemm(int m, int n, int k,
                 double *A, int rsA, int csA,
                 double *B, int rsB, int csB,
@@ -21,13 +17,11 @@ void shpc_dgemm(int m, int n, int k,
 {
     double *Bc = (double *)_mm_malloc(NC * KC * sizeof(double), 64);
 
-    // First loop partitions C and B into column panels.
     
         for (int jc = 0; jc < n; jc += NC)
         {
             int real_NC = (NC > (n - jc)) ? (n - jc) : NC;
 
-            // Second loop partitions A and B over KC
             for (int pc = 0; pc < k; pc += KC)
             {
                 int real_KC = (KC > (k - pc)) ? (k - pc) : KC;
@@ -36,8 +30,6 @@ void shpc_dgemm(int m, int n, int k,
                 pack_panel_b(real_KC, aligned_KC, real_NC, B + jc * csB + pc * rsB, csB, rsB, Bc);
                 
 
-                // Third loop partitions C and A over MC
-                #pragma omp parallel for
                 for (int ic = 0; ic < m; ic += MC)
                 {
                     int real_MC = (MC < m - ic) ? MC : m - ic;
@@ -45,18 +37,49 @@ void shpc_dgemm(int m, int n, int k,
                     double *Ac = (double *)_mm_malloc(MC * KC * sizeof(double), 64);
                     pack_panel_a(real_MC, aligned_KC, real_KC, A + ic * rsA + pc * csA, rsA, csA, Ac);
 
-                    // Fourth loop partitions Bp into column “slivers” of width nr.
+                    #pragma omp parallel for
                     for (int jr = 0; jr < real_NC; jr += NR)
                     {
+                        int real_NR = (NR < real_NC - jr) ? NR : real_NC - jr;
                         
-                        // Fifth loop partitions Ae into row slivers of height mr.
                         for (int ir = 0; ir < real_MC; ir += MR)
                         {
+                            int real_MR = (MR < real_MC - ir) ? MR : real_MC - ir;
 
-                            microkernel(Ac + (ir * aligned_KC), 1, MR,
-                                        Bc + (jr * aligned_KC), NR, 1,
-                                        C + ((ic + ir) * rsC + (jc + jr) * csC), rsC, csC,
-                                        real_KC);
+                            double *curr_A = Ac + (ir * aligned_KC);
+                            double *curr_B = Bc + (jr * aligned_KC);
+                            double *curr_C = C + ((ic + ir) * rsC + (jc + jr) * csC);
+
+                            if (real_NR == NR || real_MR == MR || rsC == 1) 
+                            {
+                                microkernel(curr_A, 1, MR,
+                                            curr_B, NR, 1,
+                                            curr_C, rsC, csC,
+                                            real_KC);
+
+                            } else {
+
+                                double *edge_C = malloc((sizeof(double) * NR * MR));
+
+                                for (int i = 0; i < real_MR; i++){
+                                    for (int j = 0; j < real_NR; j++){
+                                        edge_C[i + j * MR] = curr_C[i * rsC + j * csC];
+                                    }
+                                }
+
+                                microkernel(curr_A, 1, MR, 
+                                            curr_B, NR, 1, 
+                                            edge_C, 1, MR, 
+                                            real_KC);
+
+                                for (int i = 0; i < real_MR; i++){
+                                    for (int j = 0; j < real_NR; j++){
+                                        curr_C[i * rsC + j * csC] = edge_C[i + j * MR];
+                                    }
+                                }
+                                free(edge_C);
+                            }
+                            
                         }
                     }
                     _mm_free(Ac);
