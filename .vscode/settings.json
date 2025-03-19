@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "immintrin.h": "c",
-        "assignment3.h": "c",
-        "assert.h": "c",
-        "random": "c"
-    }
-}
